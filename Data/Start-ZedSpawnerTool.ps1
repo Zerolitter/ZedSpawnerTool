@@ -310,12 +310,16 @@ function Run-Generator {
         "-RelativeStart", $Settings.RelativeStart,
         "-Delay", $Settings.Delay,
         "-SpawnCountBase", $Settings.SpawnCountBase,
+        "-SpawnCountBaseMax", $Settings.SpawnCountBaseMax,
         "-SingleSpawnLimit", $Settings.SingleSpawnLimit,
+        "-SingleSpawnLimitMax", $Settings.SingleSpawnLimitMax,
         "-MaxClassesPerWave", $Settings.MaxClassesPerWave,
         "-RareRelativeStart", $Settings.RareRelativeStart,
         "-RareDelay", $Settings.RareDelay,
         "-RareSpawnCountBase", $Settings.RareSpawnCountBase,
+        "-RareSpawnCountBaseMax", $Settings.RareSpawnCountBaseMax,
         "-RareSingleSpawnLimit", $Settings.RareSingleSpawnLimit,
+        "-RareSingleSpawnLimitMax", $Settings.RareSingleSpawnLimitMax,
         "-RareProbability", $Settings.RareProbability,
         "-RareProbabilityMax", $Settings.RareProbabilityMax,
         "-VeryLikelyProbability", $Settings.VeryLikelyProbability,
@@ -348,8 +352,8 @@ function Run-Generator {
     $LogBox.Clear()
     $LogBox.AppendText("Running generator...`r`n")
     $LogBox.AppendText("WaveRange=$($Settings.StartWave)-$($Settings.MaxWave)`r`n")
-    $LogBox.AppendText("Normal: RelativeStart=$($Settings.RelativeStart), Delay=$($Settings.Delay), SpawnCountBase=$($Settings.SpawnCountBase), SingleSpawnLimit=$($Settings.SingleSpawnLimit), MaxClassesPerWave=$($Settings.MaxClassesPerWave)`r`n")
-    $LogBox.AppendText("Rare: RelativeStart=$($Settings.RareRelativeStart), Delay=$($Settings.RareDelay), SpawnCountBase=$($Settings.RareSpawnCountBase), SingleSpawnLimit=$($Settings.RareSingleSpawnLimit), Probability=$($Settings.RareProbability)-$($Settings.RareProbabilityMax)`r`n")
+    $LogBox.AppendText("Normal: RelativeStart=$($Settings.RelativeStart), Delay=$($Settings.Delay), SpawnCountBase=$($Settings.SpawnCountBase)-$($Settings.SpawnCountBaseMax), SingleSpawnLimit=$($Settings.SingleSpawnLimit)-$($Settings.SingleSpawnLimitMax), MaxClassesPerWave=$($Settings.MaxClassesPerWave)`r`n")
+    $LogBox.AppendText("Rare: RelativeStart=$($Settings.RareRelativeStart), Delay=$($Settings.RareDelay), SpawnCountBase=$($Settings.RareSpawnCountBase)-$($Settings.RareSpawnCountBaseMax), SingleSpawnLimit=$($Settings.RareSingleSpawnLimit)-$($Settings.RareSingleSpawnLimitMax), Probability=$($Settings.RareProbability)-$($Settings.RareProbabilityMax)`r`n")
     $LogBox.AppendText("Wave scaling: enabled from $waveScalingPath`r`n")
     $LogBox.AppendText("Safety net: enabled from $safetyNetPath`r`n")
     $LogBox.AppendText("Spawn bursts: enabled from $spawnBurstsPath`r`n")
@@ -513,7 +517,7 @@ $settingsGrid.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([Sys
 $settingsGrid.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 8)
 $mainPanel.Controls.Add($settingsGrid, 0, 2)
 
-$normalGroup = New-SettingsGroup -Title "Normal Spawn Entry" -Rows 7
+$normalGroup = New-SettingsGroup -Title "Normal Spawn Entry" -Rows 7 -ValueColumns 2
 $rareGroup = New-SettingsGroup -Title "Rare Spawn Entry" -Rows 5 -ValueColumns 2
 $probabilityOuterPanel = New-Object System.Windows.Forms.TableLayoutPanel
 $probabilityOuterPanel.Dock = "Fill"
@@ -548,14 +552,14 @@ $startWaveInput = Add-NumberRow -Panel $normalGroup.Table -Row 0 -Label "StartWa
 $maxWaveInput = Add-NumberRow -Panel $normalGroup.Table -Row 1 -Label "EndWave" -Value 49 -Minimum 1 -Maximum 999 -Tip "Last wave for this generated set. Every fifth wave is skipped as a boss wave."
 $relativeStartInput = Add-NumberRow -Panel $normalGroup.Table -Row 2 -Label "RelativeStart" -Value 2 -Minimum 0 -Maximum 100 -Tip "Spawn after this percentage of wave zeds are killed. Use 0 to start after Delay."
 $delayInput = Add-NumberRow -Panel $normalGroup.Table -Row 3 -Label "Delay" -Value 2 -Minimum 0 -Maximum 999 -Tip "Seconds between spawns."
-$spawnCountInput = Add-NumberRow -Panel $normalGroup.Table -Row 4 -Label "SpawnCountBase" -Value 1 -Minimum 1 -Maximum 999 -Tip "Base number spawned on the first cycle with one player."
-$singleLimitInput = Add-NumberRow -Panel $normalGroup.Table -Row 5 -Label "SingleSpawnLimit" -Value 1 -Minimum 1 -Maximum 999 -Tip "Maximum zeds for one spawn."
+$spawnCountInput = Add-RangeRow -Panel $normalGroup.Table -Row 4 -Label "SpawnCountBase" -MinValue 1 -MaxValue 1 -Minimum 1 -Maximum 999 -Tip "Base number spawned on the first cycle with one player."
+$singleLimitInput = Add-RangeRow -Panel $normalGroup.Table -Row 5 -Label "SingleSpawnLimit" -MinValue 1 -MaxValue 1 -Minimum 1 -Maximum 999 -Tip "Maximum zeds for one spawn."
 $maxClassesInput = Add-NumberRow -Panel $normalGroup.Table -Row 6 -Label "MaxClassesPerWave" -Value 0 -Minimum 0 -Maximum 999 -Tip "Maximum zed classes written per wave. Use 0 to write all available classes."
 
 $rareRelativeStartInput = Add-NumberRow -Panel $rareGroup.Table -Row 0 -Label "RelativeStart" -Value 2 -Minimum 0 -Maximum 100 -Tip "Rare zed RelativeStart."
 $rareDelayInput = Add-NumberRow -Panel $rareGroup.Table -Row 1 -Label "Delay" -Value 2 -Minimum 0 -Maximum 999 -Tip "Rare zed delay."
-$rareSpawnCountInput = Add-NumberRow -Panel $rareGroup.Table -Row 2 -Label "SpawnCountBase" -Value 1 -Minimum 1 -Maximum 999 -Tip "Rare zed base spawn count."
-$rareSingleLimitInput = Add-NumberRow -Panel $rareGroup.Table -Row 3 -Label "SingleSpawnLimit" -Value 1 -Minimum 1 -Maximum 999 -Tip "Rare zed single spawn limit."
+$rareSpawnCountInput = Add-RangeRow -Panel $rareGroup.Table -Row 2 -Label "SpawnCountBase" -MinValue 1 -MaxValue 1 -Minimum 1 -Maximum 999 -Tip "Rare zed base spawn count."
+$rareSingleLimitInput = Add-RangeRow -Panel $rareGroup.Table -Row 3 -Label "SingleSpawnLimit" -MinValue 1 -MaxValue 1 -Minimum 1 -Maximum 999 -Tip "Rare zed single spawn limit."
 $rareProbabilityInput = Add-RangeRow -Panel $rareGroup.Table -Row 4 -Label "Probability" -MinValue 5 -MaxValue 5 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in the Rare section."
 
 $veryLikelyInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 0 -Label "VeryLikely" -MinValue 30 -MaxValue 30 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [VeryLikely]."
@@ -586,13 +590,17 @@ function Get-WindowSettings {
         MaxWave = [int]$maxWaveInput.Value
         RelativeStart = [int]$relativeStartInput.Value
         Delay = [int]$delayInput.Value
-        SpawnCountBase = [int]$spawnCountInput.Value
-        SingleSpawnLimit = [int]$singleLimitInput.Value
+        SpawnCountBase = [int]$spawnCountInput.Min.Value
+        SpawnCountBaseMax = [int]$spawnCountInput.Max.Value
+        SingleSpawnLimit = [int]$singleLimitInput.Min.Value
+        SingleSpawnLimitMax = [int]$singleLimitInput.Max.Value
         MaxClassesPerWave = [int]$maxClassesInput.Value
         RareRelativeStart = [int]$rareRelativeStartInput.Value
         RareDelay = [int]$rareDelayInput.Value
-        RareSpawnCountBase = [int]$rareSpawnCountInput.Value
-        RareSingleSpawnLimit = [int]$rareSingleLimitInput.Value
+        RareSpawnCountBase = [int]$rareSpawnCountInput.Min.Value
+        RareSpawnCountBaseMax = [int]$rareSpawnCountInput.Max.Value
+        RareSingleSpawnLimit = [int]$rareSingleLimitInput.Min.Value
+        RareSingleSpawnLimitMax = [int]$rareSingleLimitInput.Max.Value
         RareProbability = [int]$rareProbabilityInput.Min.Value
         RareProbabilityMax = [int]$rareProbabilityInput.Max.Value
         VeryLikelyProbability = [int]$veryLikelyInput.Min.Value
@@ -656,13 +664,33 @@ function Apply-WindowSettings {
     Set-NumericValue -Control $maxWaveInput -Value (Get-SettingValue -Settings $Settings -Name "MaxWave")
     Set-NumericValue -Control $relativeStartInput -Value (Get-SettingValue -Settings $Settings -Name "RelativeStart")
     Set-NumericValue -Control $delayInput -Value (Get-SettingValue -Settings $Settings -Name "Delay")
-    Set-NumericValue -Control $spawnCountInput -Value (Get-SettingValue -Settings $Settings -Name "SpawnCountBase")
-    Set-NumericValue -Control $singleLimitInput -Value (Get-SettingValue -Settings $Settings -Name "SingleSpawnLimit")
+    Set-NumericValue -Control $spawnCountInput.Min -Value (Get-SettingValue -Settings $Settings -Name "SpawnCountBase")
+    $spawnCountMax = Get-SettingValue -Settings $Settings -Name "SpawnCountBaseMax"
+    if ($null -eq $spawnCountMax) {
+        $spawnCountMax = Get-SettingValue -Settings $Settings -Name "SpawnCountBase"
+    }
+    Set-NumericValue -Control $spawnCountInput.Max -Value $spawnCountMax
+    Set-NumericValue -Control $singleLimitInput.Min -Value (Get-SettingValue -Settings $Settings -Name "SingleSpawnLimit")
+    $singleLimitMax = Get-SettingValue -Settings $Settings -Name "SingleSpawnLimitMax"
+    if ($null -eq $singleLimitMax) {
+        $singleLimitMax = Get-SettingValue -Settings $Settings -Name "SingleSpawnLimit"
+    }
+    Set-NumericValue -Control $singleLimitInput.Max -Value $singleLimitMax
     Set-NumericValue -Control $maxClassesInput -Value (Get-SettingValue -Settings $Settings -Name "MaxClassesPerWave")
     Set-NumericValue -Control $rareRelativeStartInput -Value (Get-SettingValue -Settings $Settings -Name "RareRelativeStart")
     Set-NumericValue -Control $rareDelayInput -Value (Get-SettingValue -Settings $Settings -Name "RareDelay")
-    Set-NumericValue -Control $rareSpawnCountInput -Value (Get-SettingValue -Settings $Settings -Name "RareSpawnCountBase")
-    Set-NumericValue -Control $rareSingleLimitInput -Value (Get-SettingValue -Settings $Settings -Name "RareSingleSpawnLimit")
+    Set-NumericValue -Control $rareSpawnCountInput.Min -Value (Get-SettingValue -Settings $Settings -Name "RareSpawnCountBase")
+    $rareSpawnCountMax = Get-SettingValue -Settings $Settings -Name "RareSpawnCountBaseMax"
+    if ($null -eq $rareSpawnCountMax) {
+        $rareSpawnCountMax = Get-SettingValue -Settings $Settings -Name "RareSpawnCountBase"
+    }
+    Set-NumericValue -Control $rareSpawnCountInput.Max -Value $rareSpawnCountMax
+    Set-NumericValue -Control $rareSingleLimitInput.Min -Value (Get-SettingValue -Settings $Settings -Name "RareSingleSpawnLimit")
+    $rareSingleLimitMax = Get-SettingValue -Settings $Settings -Name "RareSingleSpawnLimitMax"
+    if ($null -eq $rareSingleLimitMax) {
+        $rareSingleLimitMax = Get-SettingValue -Settings $Settings -Name "RareSingleSpawnLimit"
+    }
+    Set-NumericValue -Control $rareSingleLimitInput.Max -Value $rareSingleLimitMax
     Set-NumericValue -Control $rareProbabilityInput.Min -Value (Get-SettingValue -Settings $Settings -Name "RareProbability")
     Set-NumericValue -Control $rareProbabilityInput.Max -Value (Get-SettingValue -Settings $Settings -Name "RareProbabilityMax")
 

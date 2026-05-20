@@ -4,12 +4,16 @@ param(
     [int]$RelativeStart = 2,
     [int]$Delay = 2,
     [int]$SpawnCountBase = 1,
+    [int]$SpawnCountBaseMax = 1,
     [int]$SingleSpawnLimit = 1,
+    [int]$SingleSpawnLimitMax = 1,
     [int]$MaxClassesPerWave = 0,
     [int]$RareRelativeStart = 2,
     [int]$RareDelay = 2,
     [int]$RareSpawnCountBase = 1,
+    [int]$RareSpawnCountBaseMax = 1,
     [int]$RareSingleSpawnLimit = 1,
+    [int]$RareSingleSpawnLimitMax = 1,
     [int]$RareProbability = 5,
     [int]$RareProbabilityMax = 5,
     [int]$VeryLikelyProbability = 30,
@@ -47,15 +51,15 @@ $ErrorActionPreference = "Stop"
 $DefaultSpawn = [ordered]@{
     RelativeStart = $RelativeStart
     Delay = $Delay
-    SpawnCountBase = $SpawnCountBase
-    SingleSpawnLimit = $SingleSpawnLimit
+    SpawnCountBase = [pscustomobject]@{ Min = $SpawnCountBase; Max = $SpawnCountBaseMax }
+    SingleSpawnLimit = [pscustomobject]@{ Min = $SingleSpawnLimit; Max = $SingleSpawnLimitMax }
 }
 
 $RareSpawn = [ordered]@{
     RelativeStart = $RareRelativeStart
     Delay = $RareDelay
-    SpawnCountBase = $RareSpawnCountBase
-    SingleSpawnLimit = $RareSingleSpawnLimit
+    SpawnCountBase = [pscustomobject]@{ Min = $RareSpawnCountBase; Max = $RareSpawnCountBaseMax }
+    SingleSpawnLimit = [pscustomobject]@{ Min = $RareSingleSpawnLimit; Max = $RareSingleSpawnLimitMax }
 }
 
 $RareProbabilityRange = [pscustomobject]@{
@@ -562,6 +566,38 @@ function Format-ProbabilityRange {
     return "$min-$max"
 }
 
+function Format-NumberRange {
+    param([object]$Range)
+
+    $min = [int]$Range.Min
+    $max = [int]$Range.Max
+
+    if ($min -eq $max) {
+        return [string]$min
+    }
+
+    return "$min-$max"
+}
+
+function Get-RandomFromRange {
+    param([object]$Range)
+
+    $min = [int]$Range.Min
+    $max = [int]$Range.Max
+
+    if ($max -lt $min) {
+        $swap = $min
+        $min = $max
+        $max = $swap
+    }
+
+    if ($min -eq $max) {
+        return $min
+    }
+
+    return Get-Random -Minimum $min -Maximum ($max + 1)
+}
+
 function New-SpawnLine {
     param(
         [int]$Wave,
@@ -571,14 +607,17 @@ function New-SpawnLine {
         [object]$SpawnSettings = $DefaultSpawn
     )
 
+    $spawnCountBase = Get-RandomFromRange -Range $SpawnSettings.SpawnCountBase
+    $singleSpawnLimit = Get-RandomFromRange -Range $SpawnSettings.SingleSpawnLimit
+
     return 'Spawn=(Wave={0},ZedClass="{1}",RelativeStart={2},Delay={3},Probability={4},SpawnCountBase={5},SingleSpawnLimit={6},Group="{7}")' -f `
         $Wave,
         $ZedClass,
         $SpawnSettings.RelativeStart,
         $SpawnSettings.Delay,
         $Probability,
-        $SpawnSettings.SpawnCountBase,
-        $SpawnSettings.SingleSpawnLimit,
+        $spawnCountBase,
+        $singleSpawnLimit,
         $Group
 }
 
@@ -746,17 +785,21 @@ function Get-BurstSpawnSettings {
         return $BaseSettings
     }
 
-    $spawnCountBase = [int]$BaseSettings.SpawnCountBase + [int]$phase.SpawnCountBaseBonus
-    $singleSpawnLimit = [int]$BaseSettings.SingleSpawnLimit + [int]$phase.SingleSpawnLimitBonus
+    $spawnCountBaseMin = [int]$BaseSettings.SpawnCountBase.Min + [int]$phase.SpawnCountBaseBonus
+    $spawnCountBaseMax = [int]$BaseSettings.SpawnCountBase.Max + [int]$phase.SpawnCountBaseBonus
+    $singleSpawnLimitMin = [int]$BaseSettings.SingleSpawnLimit.Min + [int]$phase.SingleSpawnLimitBonus
+    $singleSpawnLimitMax = [int]$BaseSettings.SingleSpawnLimit.Max + [int]$phase.SingleSpawnLimitBonus
 
-    $spawnCountBase = [Math]::Min([int]$phase.MaxSpawnCountBase, [Math]::Max(1, $spawnCountBase))
-    $singleSpawnLimit = [Math]::Min([int]$phase.MaxSingleSpawnLimit, [Math]::Max(1, $singleSpawnLimit))
+    $spawnCountBaseMin = [Math]::Min([int]$phase.MaxSpawnCountBase, [Math]::Max(1, $spawnCountBaseMin))
+    $spawnCountBaseMax = [Math]::Min([int]$phase.MaxSpawnCountBase, [Math]::Max($spawnCountBaseMin, $spawnCountBaseMax))
+    $singleSpawnLimitMin = [Math]::Min([int]$phase.MaxSingleSpawnLimit, [Math]::Max(1, $singleSpawnLimitMin))
+    $singleSpawnLimitMax = [Math]::Min([int]$phase.MaxSingleSpawnLimit, [Math]::Max($singleSpawnLimitMin, $singleSpawnLimitMax))
 
     return [pscustomobject]@{
         RelativeStart = [int]$BaseSettings.RelativeStart
         Delay = [int]$BaseSettings.Delay
-        SpawnCountBase = $spawnCountBase
-        SingleSpawnLimit = $singleSpawnLimit
+        SpawnCountBase = [pscustomobject]@{ Min = $spawnCountBaseMin; Max = $spawnCountBaseMax }
+        SingleSpawnLimit = [pscustomobject]@{ Min = $singleSpawnLimitMin; Max = $singleSpawnLimitMax }
     }
 }
 
@@ -933,8 +976,8 @@ $blockLines = New-Object System.Collections.Generic.List[string]
 $blockLines.Add("")
 $blockLines.Add("; --- Generated set: waves $StartWave-$MaxWave ---")
 $blockLines.Add("; Boss waves skipped: every 5th wave")
-$blockLines.Add("; Normal RelativeStart=$($DefaultSpawn.RelativeStart), Delay=$($DefaultSpawn.Delay), SpawnCountBase=$($DefaultSpawn.SpawnCountBase), SingleSpawnLimit=$($DefaultSpawn.SingleSpawnLimit), MaxClassesPerWave=$MaxClassesPerWave")
-$blockLines.Add("; Rare RelativeStart=$($RareSpawn.RelativeStart), Delay=$($RareSpawn.Delay), SpawnCountBase=$($RareSpawn.SpawnCountBase), SingleSpawnLimit=$($RareSpawn.SingleSpawnLimit), BaseProbability=$(Format-ProbabilityRange -Range $rareProbabilityRange)")
+$blockLines.Add("; Normal RelativeStart=$($DefaultSpawn.RelativeStart), Delay=$($DefaultSpawn.Delay), SpawnCountBase=$(Format-NumberRange -Range $DefaultSpawn.SpawnCountBase), SingleSpawnLimit=$(Format-NumberRange -Range $DefaultSpawn.SingleSpawnLimit), MaxClassesPerWave=$MaxClassesPerWave")
+$blockLines.Add("; Rare RelativeStart=$($RareSpawn.RelativeStart), Delay=$($RareSpawn.Delay), SpawnCountBase=$(Format-NumberRange -Range $RareSpawn.SpawnCountBase), SingleSpawnLimit=$(Format-NumberRange -Range $RareSpawn.SingleSpawnLimit), BaseProbability=$(Format-ProbabilityRange -Range $rareProbabilityRange)")
 $blockLines.Add("; Wave scaling: $(if ($DisableWaveScaling) { 'disabled' } else { 'enabled from Config\Wave scaling.ini' })")
 $blockLines.Add("; Safety net: $(if ($DisableSafetyNet) { 'disabled' } else { 'enabled from Config\Safety net.ini' })")
 $blockLines.Add("; Spawn bursts: $(if ($DisableSpawnBursts) { 'disabled' } else { 'enabled from Config\Spawn bursts.ini' })")
@@ -982,8 +1025,8 @@ Write-Host "Mode: $(if ($Append) { 'Append set' } else { 'Rebuild file' })"
 Write-Host "Wave range: $StartWave-$MaxWave"
 Write-Host "Spawn lines: $($spawnLines.Count)"
 Write-Host "Boss waves skipped: $((($skippedBossWaves | Sort-Object) -join ', '))"
-Write-Host "Normal settings: RelativeStart=$($DefaultSpawn.RelativeStart), Delay=$($DefaultSpawn.Delay), SpawnCountBase=$($DefaultSpawn.SpawnCountBase), SingleSpawnLimit=$($DefaultSpawn.SingleSpawnLimit), MaxClassesPerWave=$MaxClassesPerWave"
-Write-Host "Rare settings: RelativeStart=$($RareSpawn.RelativeStart), Delay=$($RareSpawn.Delay), BaseProbability=$(Format-ProbabilityRange -Range $rareProbabilityRange), SpawnCountBase=$($RareSpawn.SpawnCountBase), SingleSpawnLimit=$($RareSpawn.SingleSpawnLimit)"
+Write-Host "Normal settings: RelativeStart=$($DefaultSpawn.RelativeStart), Delay=$($DefaultSpawn.Delay), SpawnCountBase=$(Format-NumberRange -Range $DefaultSpawn.SpawnCountBase), SingleSpawnLimit=$(Format-NumberRange -Range $DefaultSpawn.SingleSpawnLimit), MaxClassesPerWave=$MaxClassesPerWave"
+Write-Host "Rare settings: RelativeStart=$($RareSpawn.RelativeStart), Delay=$($RareSpawn.Delay), BaseProbability=$(Format-ProbabilityRange -Range $rareProbabilityRange), SpawnCountBase=$(Format-NumberRange -Range $RareSpawn.SpawnCountBase), SingleSpawnLimit=$(Format-NumberRange -Range $RareSpawn.SingleSpawnLimit)"
 Write-Host "Wave scaling: $(if ($DisableWaveScaling) { 'disabled' } else { 'enabled' })"
 Write-Host "Safety net: $(if ($DisableSafetyNet) { 'disabled' } else { 'enabled' })"
 Write-Host "Spawn bursts: $(if ($DisableSpawnBursts) { 'disabled' } else { "enabled ($burstSpawnLines burst lines)" })"

@@ -282,6 +282,26 @@ This controls only the zeds in the Rare section of Config\List of zeds.txt.
 It is separate from the Haveyouseenhim bucket.
 
 
+Spawn Count Min / Max
+---------------------
+
+Normal and Rare Spawn Entry both use two boxes for:
+
+    SpawnCountBase
+    SingleSpawnLimit
+
+If both values are the same, the value is fixed.
+
+If the values are different, the generator randomly picks a value between them for each spawn line.
+
+Example:
+
+    SpawnCountBase 1 / 2
+    SingleSpawnLimit 1 / 3
+
+This can create small occasional pack-size variation before Spawn bursts adds its extra hurdles.
+
+
 Spawn Sections
 --------------
 

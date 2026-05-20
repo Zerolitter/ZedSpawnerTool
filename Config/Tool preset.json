@@ -7,9 +7,11 @@
   "StartWave": 1,
   "SomewhatinthemiddleProbability": 15,
   "SpawnCountBase": 1,
+  "SpawnCountBaseMax": 1,
   "MaxWave": 49,
   "RelativeStart": 2,
   "RareSingleSpawnLimit": 1,
+  "RareSingleSpawnLimitMax": 1,
   "UnlikelyProbability": 10,
   "VeryLikelyProbabilityMax": 40,
   "RareRelativeStart": 2,
@@ -18,7 +20,9 @@
   "VeryUnlikelyProbabilityMax": 10,
   "HaveyouseenhimProbabilityMax": 10,
   "RareSpawnCountBase": 1,
+  "RareSpawnCountBaseMax": 1,
   "SomewhatinthemiddleProbabilityMax": 20,
   "Delay": 2,
-  "SingleSpawnLimit": 1
+  "SingleSpawnLimit": 1,
+  "SingleSpawnLimitMax": 1
 }
