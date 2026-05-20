@@ -30,13 +30,15 @@ param(
     [string]$WaveScalingPath = "..\Config\Wave scaling.ini",
     [string]$SafetyNetPath = "..\Config\Safety net.ini",
     [string]$SpawnBurstsPath = "..\Config\Spawn bursts.ini",
+    [string]$DifficultyScalerPath = "..\Config\Difficulty scaler.ini",
     [string]$TemplateIniPath = "..\Config\Original .ini\KFZedSpawner.ini",
     [string]$OutputPath = "..\Generated\KFZedSpawner.ini",
     [switch]$Append,
     [switch]$InPlace,
     [switch]$DisableWaveScaling,
     [switch]$DisableSafetyNet,
-    [switch]$DisableSpawnBursts
+    [switch]$DisableSpawnBursts,
+    [switch]$DisableDifficultyScaler
 )
 
 Set-StrictMode -Version Latest
@@ -365,6 +367,42 @@ function Read-SpawnBursts {
     return $phases
 }
 
+function Read-DifficultyScaler {
+    param([string]$Path)
+
+    $phases = New-Object System.Collections.Generic.List[object]
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $phases
+    }
+
+    $currentPhase = $null
+    foreach ($rawLine in Get-Content -LiteralPath $Path) {
+        $line = $rawLine.Trim()
+
+        if (-not $line -or $line.StartsWith(";") -or $line.StartsWith("#")) {
+            continue
+        }
+
+        if ($line -match "^\[Wave(?<start>\d+)-(?<end>\d+)\]$") {
+            $currentPhase = [pscustomobject]@{
+                StartWave = [int]$Matches["start"]
+                EndWave = [int]$Matches["end"]
+                Caps = @{}
+            }
+            $phases.Add($currentPhase)
+            continue
+        }
+
+        if ($null -eq $currentPhase -or $line -notmatch "^(?<key>[A-Za-z]+)\s*=\s*(?<value>-?\d+)\s*$") {
+            continue
+        }
+
+        $currentPhase.Caps[$Matches["key"]] = [int]$Matches["value"]
+    }
+
+    return $phases
+}
+
 function Get-SafetyNetPhase {
     param(
         [int]$Wave,
@@ -529,17 +567,19 @@ function New-SpawnLine {
         [int]$Wave,
         [string]$ZedClass,
         [int]$Probability,
+        [string]$Group,
         [object]$SpawnSettings = $DefaultSpawn
     )
 
-    return 'Spawn=(Wave={0},ZedClass="{1}",RelativeStart={2},Delay={3},Probability={4},SpawnCountBase={5},SingleSpawnLimit={6})' -f `
+    return 'Spawn=(Wave={0},ZedClass="{1}",RelativeStart={2},Delay={3},Probability={4},SpawnCountBase={5},SingleSpawnLimit={6},Group="{7}")' -f `
         $Wave,
         $ZedClass,
         $SpawnSettings.RelativeStart,
         $SpawnSettings.Delay,
         $Probability,
         $SpawnSettings.SpawnCountBase,
-        $SpawnSettings.SingleSpawnLimit
+        $SpawnSettings.SingleSpawnLimit,
+        $Group
 }
 
 function Get-SpawnLineWave {
@@ -550,6 +590,22 @@ function Get-SpawnLineWave {
     }
 
     return [int]::MaxValue
+}
+
+function Get-SpawnLineGroup {
+    param([string]$SpawnLine)
+
+    if ($SpawnLine -match 'Group="([^"]+)"') {
+        return $Matches[1]
+    }
+
+    return "Ungrouped"
+}
+
+function Remove-SpawnLineMetadata {
+    param([string]$SpawnLine)
+
+    return ($SpawnLine -replace ',Group="[^"]+"', "")
 }
 
 function Get-BurstLineCount {
@@ -598,6 +654,68 @@ function Limit-SpawnLinesPerWave {
             $limitedLines.Add($line)
         }
         $skipped += ($waveLines.Count - $picked.Count)
+    }
+
+    return [pscustomobject]@{
+        Lines = $limitedLines
+        Skipped = $skipped
+    }
+}
+
+function Limit-SpawnLinesByDifficulty {
+    param(
+        [System.Collections.Generic.List[string]]$Lines,
+        [System.Collections.Generic.List[object]]$DifficultyScaler
+    )
+
+    if ($DisableDifficultyScaler -or $DifficultyScaler.Count -eq 0) {
+        return [pscustomobject]@{
+            Lines = $Lines
+            Skipped = 0
+        }
+    }
+
+    $limitedLines = New-Object System.Collections.Generic.List[string]
+    $skipped = 0
+
+    $waveGroups = $Lines | Group-Object { Get-SpawnLineWave -SpawnLine $_ }
+    foreach ($waveGroup in ($waveGroups | Sort-Object { [int]$_.Name })) {
+        $wave = [int]$waveGroup.Name
+        $phase = Get-WavePhase -Wave $wave -Phases $DifficultyScaler
+        if ($null -eq $phase) {
+            foreach ($line in $waveGroup.Group) {
+                $limitedLines.Add($line)
+            }
+            continue
+        }
+
+        $groupedLines = $waveGroup.Group | Group-Object { Get-SpawnLineGroup -SpawnLine $_ }
+        foreach ($groupedLine in $groupedLines) {
+            $group = [string]$groupedLine.Name
+            $cap = 0
+            if ($phase.Caps.ContainsKey($group)) {
+                $cap = [int]$phase.Caps[$group]
+            }
+
+            if ($cap -le 0) {
+                $skipped += @($groupedLine.Group).Count
+                continue
+            }
+
+            $available = @($groupedLine.Group)
+            if ($available.Count -le $cap) {
+                foreach ($line in $available) {
+                    $limitedLines.Add($line)
+                }
+                continue
+            }
+
+            $picked = @($available | Get-Random -Count $cap)
+            foreach ($line in $picked) {
+                $limitedLines.Add($line)
+            }
+            $skipped += ($available.Count - $picked.Count)
+        }
     }
 
     return [pscustomobject]@{
@@ -661,6 +779,7 @@ $probabilityGroupsFullPath = Resolve-FromScriptRoot $ProbabilityGroupsPath
 $waveScalingFullPath = Resolve-FromScriptRoot $WaveScalingPath
 $safetyNetFullPath = Resolve-FromScriptRoot $SafetyNetPath
 $spawnBurstsFullPath = Resolve-FromScriptRoot $SpawnBurstsPath
+$difficultyScalerFullPath = Resolve-FromScriptRoot $DifficultyScalerPath
 $templateIniFullPath = Resolve-FromScriptRoot $TemplateIniPath
 $outputFullPath = Resolve-FromScriptRoot $OutputPath
 
@@ -686,6 +805,7 @@ $probabilityConfig = Read-ProbabilityGroups -Path $probabilityGroupsFullPath
 $waveScaling = Read-WaveScaling -Path $waveScalingFullPath
 $safetyNet = Read-SafetyNet -Path $safetyNetFullPath
 $spawnBursts = Read-SpawnBursts -Path $spawnBurstsFullPath
+$difficultyScaler = Read-DifficultyScaler -Path $difficultyScalerFullPath
 $fallbackProbabilityRange = $probabilityConfig.Groups.Somewhatinthemiddle
 $rareProbabilityRange = $RareProbabilityRange
 
@@ -694,6 +814,7 @@ $usedNormalZeds = New-Object System.Collections.Generic.HashSet[string]
 $skippedBossWaves = New-Object System.Collections.Generic.HashSet[int]
 $lockedByScaling = @{}
 $caughtBySafetyNet = @{}
+$difficultyScalerSkipped = 0
 $classLimitSkipped = 0
 $hasWaveSections = $false
 
@@ -726,7 +847,7 @@ function Add-ScaledSpawnLine {
     }
 
     $finalSpawnSettings = Get-BurstSpawnSettings -Wave $Wave -BaseSettings $SpawnSettings -SpawnBursts $spawnBursts
-    $spawnLines.Add((New-SpawnLine -Wave $Wave -ZedClass $ZedClass -Probability $probability -SpawnSettings $finalSpawnSettings))
+    $spawnLines.Add((New-SpawnLine -Wave $Wave -ZedClass $ZedClass -Probability $probability -Group $Group -SpawnSettings $finalSpawnSettings))
 }
 
 foreach ($sectionName in $sections.Keys) {
@@ -798,6 +919,10 @@ if ($sections.Contains("Rare")) {
     }
 }
 
+$difficultyResult = Limit-SpawnLinesByDifficulty -Lines $spawnLines -DifficultyScaler $difficultyScaler
+$spawnLines = $difficultyResult.Lines
+$difficultyScalerSkipped = [int]$difficultyResult.Skipped
+
 $limitResult = Limit-SpawnLinesPerWave -Lines $spawnLines -Limit $MaxClassesPerWave
 $spawnLines = $limitResult.Lines
 $classLimitSkipped = [int]$limitResult.Skipped
@@ -813,11 +938,12 @@ $blockLines.Add("; Rare RelativeStart=$($RareSpawn.RelativeStart), Delay=$($Rare
 $blockLines.Add("; Wave scaling: $(if ($DisableWaveScaling) { 'disabled' } else { 'enabled from Config\Wave scaling.ini' })")
 $blockLines.Add("; Safety net: $(if ($DisableSafetyNet) { 'disabled' } else { 'enabled from Config\Safety net.ini' })")
 $blockLines.Add("; Spawn bursts: $(if ($DisableSpawnBursts) { 'disabled' } else { 'enabled from Config\Spawn bursts.ini' })")
+$blockLines.Add("; Difficulty scaler: $(if ($DisableDifficultyScaler) { 'disabled' } else { 'enabled from Config\Difficulty scaler.ini' })")
 $orderedSpawnLines = @($spawnLines | Sort-Object {
     Get-SpawnLineWave -SpawnLine $_
 })
 foreach ($spawnLine in $orderedSpawnLines) {
-    $blockLines.Add($spawnLine)
+    $blockLines.Add((Remove-SpawnLineMetadata -SpawnLine $spawnLine))
 }
 
 if ($Append -and (Test-Path -LiteralPath $outputFullPath)) {
@@ -861,6 +987,7 @@ Write-Host "Rare settings: RelativeStart=$($RareSpawn.RelativeStart), Delay=$($R
 Write-Host "Wave scaling: $(if ($DisableWaveScaling) { 'disabled' } else { 'enabled' })"
 Write-Host "Safety net: $(if ($DisableSafetyNet) { 'disabled' } else { 'enabled' })"
 Write-Host "Spawn bursts: $(if ($DisableSpawnBursts) { 'disabled' } else { "enabled ($burstSpawnLines burst lines)" })"
+Write-Host "Difficulty scaler: $(if ($DisableDifficultyScaler) { 'disabled' } else { "enabled ($difficultyScalerSkipped skipped)" })"
 Write-Host "Class limit per wave: $(if ($MaxClassesPerWave -le 0) { 'disabled' } else { "$MaxClassesPerWave classes max ($classLimitSkipped skipped)" })"
 if (-not $DisableWaveScaling -and $lockedByScaling.Count -gt 0) {
     Write-Host "Spawn entries skipped before unlock waves:"

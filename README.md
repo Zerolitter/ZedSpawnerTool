@@ -17,6 +17,7 @@ Config/
     Wave scaling.ini
     Safety net.ini
     Spawn bursts.ini
+    Difficulty scaler.ini
     Tool preset.json
 
 Data/
@@ -154,6 +155,34 @@ Example:
 That means each spawn line in waves 26-29 has a 19 percent chance to become a bigger pack, clamped at SpawnCountBase 2 and SingleSpawnLimit 3.
 
 
+Config\Difficulty scaler.ini
+
+Controls how many zed classes from each bucket can appear per regular wave.
+This runs after Wave scaling and Safety net.
+
+Each wave range can use the bucket names as caps:
+
+    VeryLikely
+    AboveAvarage
+    Somewhatinthemiddle
+    Unlikely
+    VeryUnlikely
+    Haveyouseenhim
+
+Example:
+
+    [Wave11-14]
+    VeryLikely=8
+    AboveAvarage=7
+    Somewhatinthemiddle=7
+    Unlikely=2
+    VeryUnlikely=0
+    Haveyouseenhim=0
+
+That means each wave in that range randomly keeps up to 8 VeryLikely classes, 7 AboveAvarage classes, 7 middle classes, and 2 Unlikely classes.
+The higher waves allow more groups and more class slots.
+
+
 Generated\KFZedSpawner.ini
 
 This is the generated file to use on the server. The name casing matters on Linux.
@@ -192,6 +221,10 @@ Open Bursts
 
     Opens Config\Spawn bursts.ini.
 
+Open Difficulty
+
+    Opens Config\Difficulty scaler.ini.
+
 
 Wave Ranges
 -----------
@@ -224,7 +257,7 @@ MaxClassesPerWave controls how many zed classes can be written for each regular 
     0 = write all available classes
     20 = randomly keep up to 20 classes per wave
 
-The limit is applied after probability groups, wave scaling, safety net, and spawn bursts are calculated.
+The limit is applied after probability groups, wave scaling, safety net, difficulty scaler, and spawn bursts are calculated.
 
 
 Probability Min / Max
