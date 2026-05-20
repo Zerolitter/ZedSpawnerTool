@@ -1,0 +1,6 @@
+Generated/*.ini
+*.bak
+*.lnk
+*.zip
+KFZedSpawnerTool-Portable/
+Config/workshop-class-hits.json

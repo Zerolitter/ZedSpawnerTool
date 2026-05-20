@@ -1,0 +1,14 @@
+KFGameContent.KFPawn_ZedClot_Cyst
+KFGameContent.KFPawn_ZedClot_Alpha
+KFGameContent.KFPawn_ZedClot_Slasher
+KFGameContent.KFPawn_ZedClot_AlphaKing
+KFGameContent.KFPawn_ZedCrawler
+KFGameContent.KFPawn_ZedStalker
+KFGameContent.KFPawn_ZedGorefast
+KFGameContent.KFPawn_ZedGorefastDualBlade
+KFGameContent.KFPawn_ZedBloat
+KFGameContent.KFPawn_ZedHusk
+KFGameContent.KFPawn_ZedSiren
+KFGameContent.KFPawn_ZedScrake
+KFGameContent.KFPawn_ZedFleshpoundMini
+KFGameContent.KFPawn_ZedFleshpound
