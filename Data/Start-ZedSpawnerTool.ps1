@@ -551,9 +551,9 @@ $settingsGrid.Controls.Add($probabilityOuterPanel, 2, 0)
 $startWaveInput = Add-NumberRow -Panel $normalGroup.Table -Row 0 -Label "StartWave" -Value 1 -Minimum 1 -Maximum 999 -Tip "First wave for this generated set."
 $maxWaveInput = Add-NumberRow -Panel $normalGroup.Table -Row 1 -Label "EndWave" -Value 49 -Minimum 1 -Maximum 999 -Tip "Last wave for this generated set. Every fifth wave is skipped as a boss wave."
 $relativeStartInput = Add-NumberRow -Panel $normalGroup.Table -Row 2 -Label "RelativeStart" -Value 2 -Minimum 0 -Maximum 100 -Tip "Spawn after this percentage of wave zeds are killed. Use 0 to start after Delay."
-$delayInput = Add-NumberRow -Panel $normalGroup.Table -Row 3 -Label "Delay" -Value 2 -Minimum 0 -Maximum 999 -Tip "Seconds between spawns."
-$spawnCountInput = Add-RangeRow -Panel $normalGroup.Table -Row 4 -Label "SpawnCountBase" -MinValue 1 -MaxValue 1 -Minimum 1 -Maximum 999 -Tip "Base number spawned on the first cycle with one player."
-$singleLimitInput = Add-RangeRow -Panel $normalGroup.Table -Row 5 -Label "SingleSpawnLimit" -MinValue 1 -MaxValue 1 -Minimum 1 -Maximum 999 -Tip "Maximum zeds for one spawn."
+$delayInput = Add-NumberRow -Panel $normalGroup.Table -Row 3 -Label "Delay" -Value 1 -Minimum 0 -Maximum 999 -Tip "Seconds between spawns."
+$spawnCountInput = Add-RangeRow -Panel $normalGroup.Table -Row 4 -Label "SpawnCountBase" -MinValue 1 -MaxValue 2 -Minimum 1 -Maximum 999 -Tip "Base number spawned on the first cycle with one player."
+$singleLimitInput = Add-RangeRow -Panel $normalGroup.Table -Row 5 -Label "SingleSpawnLimit" -MinValue 1 -MaxValue 2 -Minimum 1 -Maximum 999 -Tip "Maximum zeds for one spawn."
 $maxClassesInput = Add-NumberRow -Panel $normalGroup.Table -Row 6 -Label "MaxClassesPerWave" -Value 0 -Minimum 0 -Maximum 999 -Tip "Maximum zed classes written per wave. Use 0 to write all available classes."
 
 $rareRelativeStartInput = Add-NumberRow -Panel $rareGroup.Table -Row 0 -Label "RelativeStart" -Value 2 -Minimum 0 -Maximum 100 -Tip "Rare zed RelativeStart."
@@ -562,12 +562,12 @@ $rareSpawnCountInput = Add-RangeRow -Panel $rareGroup.Table -Row 2 -Label "Spawn
 $rareSingleLimitInput = Add-RangeRow -Panel $rareGroup.Table -Row 3 -Label "SingleSpawnLimit" -MinValue 1 -MaxValue 1 -Minimum 1 -Maximum 999 -Tip "Rare zed single spawn limit."
 $rareProbabilityInput = Add-RangeRow -Panel $rareGroup.Table -Row 4 -Label "Probability" -MinValue 5 -MaxValue 5 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in the Rare section."
 
-$veryLikelyInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 0 -Label "VeryLikely" -MinValue 30 -MaxValue 30 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [VeryLikely]."
-$aboveAvarageInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 1 -Label "AboveAvarage" -MinValue 25 -MaxValue 25 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [AboveAvarage]."
-$middleInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 2 -Label "Somewhatinthemiddle" -MinValue 12 -MaxValue 12 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [Somewhatinthemiddle]."
-$unlikelyInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 3 -Label "Unlikely" -MinValue 10 -MaxValue 10 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [Unlikely]."
-$veryUnlikelyInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 4 -Label "VeryUnlikely" -MinValue 7 -MaxValue 7 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [VeryUnlikely]."
-$seenHimInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 5 -Label "Haveyouseenhim" -MinValue 5 -MaxValue 5 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [Haveyouseenhim]."
+$veryLikelyInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 0 -Label "VeryLikely" -MinValue 35 -MaxValue 55 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [VeryLikely]."
+$aboveAvarageInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 1 -Label "AboveAvarage" -MinValue 30 -MaxValue 48 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [AboveAvarage]."
+$middleInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 2 -Label "Somewhatinthemiddle" -MinValue 22 -MaxValue 38 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [Somewhatinthemiddle]."
+$unlikelyInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 3 -Label "Unlikely" -MinValue 16 -MaxValue 30 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [Unlikely]."
+$veryUnlikelyInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 4 -Label "VeryUnlikely" -MinValue 8 -MaxValue 18 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [VeryUnlikely]."
+$seenHimInput = Add-RangeRow -Panel $probabilityGroup.Table -Row 5 -Label "Haveyouseenhim" -MinValue 5 -MaxValue 12 -Minimum 1 -Maximum 100 -Tip "Probability range for zeds in [Haveyouseenhim]."
 
 $logBox = New-Object System.Windows.Forms.TextBox
 $logBox.Multiline = $true
