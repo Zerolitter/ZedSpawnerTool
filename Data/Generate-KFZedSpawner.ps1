@@ -34,6 +34,7 @@ param(
     [string]$WaveScalingPath = "..\Config\Wave scaling.ini",
     [string]$SafetyNetPath = "..\Config\Safety net.ini",
     [string]$SpawnBurstsPath = "..\Config\Spawn bursts.ini",
+    [string]$SpawnPacingPath = "..\Config\Spawn pacing.ini",
     [string]$DifficultyScalerPath = "..\Config\Difficulty scaler.ini",
     [string]$TemplateIniPath = "..\Config\Original .ini\KFZedSpawner.ini",
     [string]$OutputPath = "..\Generated\KFZedSpawner.ini",
@@ -42,6 +43,7 @@ param(
     [switch]$DisableWaveScaling,
     [switch]$DisableSafetyNet,
     [switch]$DisableSpawnBursts,
+    [switch]$DisableSpawnPacing,
     [switch]$DisableDifficultyScaler
 )
 
@@ -371,6 +373,50 @@ function Read-SpawnBursts {
     return $phases
 }
 
+function Read-SpawnPacing {
+    param([string]$Path)
+
+    $phases = New-Object System.Collections.Generic.List[object]
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $phases
+    }
+
+    $currentPhase = $null
+    foreach ($rawLine in Get-Content -LiteralPath $Path) {
+        $line = $rawLine.Trim()
+
+        if (-not $line -or $line.StartsWith(";") -or $line.StartsWith("#")) {
+            continue
+        }
+
+        if ($line -match "^\[Wave(?<start>\d+)-(?<end>\d+)\]$") {
+            $currentPhase = [pscustomobject]@{
+                StartWave = [int]$Matches["start"]
+                EndWave = [int]$Matches["end"]
+                RelativeStart = $null
+                DelayMin = $null
+                DelayMax = $null
+                MaxSpawnCountBase = $null
+                MaxSingleSpawnLimit = $null
+            }
+            $phases.Add($currentPhase)
+            continue
+        }
+
+        if ($null -eq $currentPhase -or $line -notmatch "^(?<key>[A-Za-z]+)\s*=\s*(?<value>-?\d+)\s*$") {
+            continue
+        }
+
+        $key = $Matches["key"]
+        $value = [int]$Matches["value"]
+        if ($currentPhase.PSObject.Properties[$key]) {
+            $currentPhase.$key = $value
+        }
+    }
+
+    return $phases
+}
+
 function Read-DifficultyScaler {
     param([string]$Path)
 
@@ -598,6 +644,22 @@ function Get-RandomFromRange {
     return Get-Random -Minimum $min -Maximum ($max + 1)
 }
 
+function New-NumberRange {
+    param(
+        [int]$Min,
+        [int]$Max
+    )
+
+    if ($Max -lt $Min) {
+        $Max = $Min
+    }
+
+    return [pscustomobject]@{
+        Min = $Min
+        Max = $Max
+    }
+}
+
 function New-SpawnLine {
     param(
         [int]$Wave,
@@ -803,6 +865,65 @@ function Get-BurstSpawnSettings {
     }
 }
 
+function Get-PacedSpawnSettings {
+    param(
+        [int]$Wave,
+        [object]$BaseSettings,
+        [System.Collections.Generic.List[object]]$SpawnPacing
+    )
+
+    if ($DisableSpawnPacing) {
+        return $BaseSettings
+    }
+
+    $phase = Get-WavePhase -Wave $Wave -Phases $SpawnPacing
+    if ($null -eq $phase) {
+        return $BaseSettings
+    }
+
+    $relativeStart = [int]$BaseSettings.RelativeStart
+    if ($null -ne $phase.RelativeStart) {
+        $relativeStart = [int]$phase.RelativeStart
+    }
+
+    $delay = [int]$BaseSettings.Delay
+    if ($null -ne $phase.DelayMin -or $null -ne $phase.DelayMax) {
+        $delayMin = $delay
+        $delayMax = $delay
+        if ($null -ne $phase.DelayMin) {
+            $delayMin = [int]$phase.DelayMin
+        }
+        if ($null -ne $phase.DelayMax) {
+            $delayMax = [int]$phase.DelayMax
+        }
+        if ($delayMax -lt $delayMin) {
+            $delayMax = $delayMin
+        }
+        $delay = Get-Random -Minimum $delayMin -Maximum ($delayMax + 1)
+    }
+
+    $spawnCountBaseMin = [int]$BaseSettings.SpawnCountBase.Min
+    $spawnCountBaseMax = [int]$BaseSettings.SpawnCountBase.Max
+    if ($null -ne $phase.MaxSpawnCountBase) {
+        $spawnCountBaseMin = [Math]::Min([int]$phase.MaxSpawnCountBase, $spawnCountBaseMin)
+        $spawnCountBaseMax = [Math]::Min([int]$phase.MaxSpawnCountBase, $spawnCountBaseMax)
+    }
+
+    $singleSpawnLimitMin = [int]$BaseSettings.SingleSpawnLimit.Min
+    $singleSpawnLimitMax = [int]$BaseSettings.SingleSpawnLimit.Max
+    if ($null -ne $phase.MaxSingleSpawnLimit) {
+        $singleSpawnLimitMin = [Math]::Min([int]$phase.MaxSingleSpawnLimit, $singleSpawnLimitMin)
+        $singleSpawnLimitMax = [Math]::Min([int]$phase.MaxSingleSpawnLimit, $singleSpawnLimitMax)
+    }
+
+    return [pscustomobject]@{
+        RelativeStart = [Math]::Max(0, $relativeStart)
+        Delay = [Math]::Max(0, $delay)
+        SpawnCountBase = New-NumberRange -Min ([Math]::Max(1, $spawnCountBaseMin)) -Max ([Math]::Max(1, $spawnCountBaseMax))
+        SingleSpawnLimit = New-NumberRange -Min ([Math]::Max(1, $singleSpawnLimitMin)) -Max ([Math]::Max(1, $singleSpawnLimitMax))
+    }
+}
+
 function Get-TemplatePrefix {
     param([string]$Path)
 
@@ -822,6 +943,7 @@ $probabilityGroupsFullPath = Resolve-FromScriptRoot $ProbabilityGroupsPath
 $waveScalingFullPath = Resolve-FromScriptRoot $WaveScalingPath
 $safetyNetFullPath = Resolve-FromScriptRoot $SafetyNetPath
 $spawnBurstsFullPath = Resolve-FromScriptRoot $SpawnBurstsPath
+$spawnPacingFullPath = Resolve-FromScriptRoot $SpawnPacingPath
 $difficultyScalerFullPath = Resolve-FromScriptRoot $DifficultyScalerPath
 $templateIniFullPath = Resolve-FromScriptRoot $TemplateIniPath
 $outputFullPath = Resolve-FromScriptRoot $OutputPath
@@ -848,6 +970,7 @@ $probabilityConfig = Read-ProbabilityGroups -Path $probabilityGroupsFullPath
 $waveScaling = Read-WaveScaling -Path $waveScalingFullPath
 $safetyNet = Read-SafetyNet -Path $safetyNetFullPath
 $spawnBursts = Read-SpawnBursts -Path $spawnBurstsFullPath
+$spawnPacing = Read-SpawnPacing -Path $spawnPacingFullPath
 $difficultyScaler = Read-DifficultyScaler -Path $difficultyScalerFullPath
 $fallbackProbabilityRange = $probabilityConfig.Groups.Somewhatinthemiddle
 $rareProbabilityRange = $RareProbabilityRange
@@ -890,6 +1013,7 @@ function Add-ScaledSpawnLine {
     }
 
     $finalSpawnSettings = Get-BurstSpawnSettings -Wave $Wave -BaseSettings $SpawnSettings -SpawnBursts $spawnBursts
+    $finalSpawnSettings = Get-PacedSpawnSettings -Wave $Wave -BaseSettings $finalSpawnSettings -SpawnPacing $spawnPacing
     $spawnLines.Add((New-SpawnLine -Wave $Wave -ZedClass $ZedClass -Probability $probability -Group $Group -SpawnSettings $finalSpawnSettings))
 }
 
@@ -981,6 +1105,7 @@ $blockLines.Add("; Rare RelativeStart=$($RareSpawn.RelativeStart), Delay=$($Rare
 $blockLines.Add("; Wave scaling: $(if ($DisableWaveScaling) { 'disabled' } else { 'enabled from Config\Wave scaling.ini' })")
 $blockLines.Add("; Safety net: $(if ($DisableSafetyNet) { 'disabled' } else { 'enabled from Config\Safety net.ini' })")
 $blockLines.Add("; Spawn bursts: $(if ($DisableSpawnBursts) { 'disabled' } else { 'enabled from Config\Spawn bursts.ini' })")
+$blockLines.Add("; Spawn pacing: $(if ($DisableSpawnPacing) { 'disabled' } else { 'enabled from Config\Spawn pacing.ini' })")
 $blockLines.Add("; Difficulty scaler: $(if ($DisableDifficultyScaler) { 'disabled' } else { 'enabled from Config\Difficulty scaler.ini' })")
 $orderedSpawnLines = @($spawnLines | Sort-Object {
     Get-SpawnLineWave -SpawnLine $_
@@ -1030,6 +1155,7 @@ Write-Host "Rare settings: RelativeStart=$($RareSpawn.RelativeStart), Delay=$($R
 Write-Host "Wave scaling: $(if ($DisableWaveScaling) { 'disabled' } else { 'enabled' })"
 Write-Host "Safety net: $(if ($DisableSafetyNet) { 'disabled' } else { 'enabled' })"
 Write-Host "Spawn bursts: $(if ($DisableSpawnBursts) { 'disabled' } else { "enabled ($burstSpawnLines burst lines)" })"
+Write-Host "Spawn pacing: $(if ($DisableSpawnPacing) { 'disabled' } else { 'enabled' })"
 Write-Host "Difficulty scaler: $(if ($DisableDifficultyScaler) { 'disabled' } else { "enabled ($difficultyScalerSkipped skipped)" })"
 Write-Host "Class limit per wave: $(if ($MaxClassesPerWave -le 0) { 'disabled' } else { "$MaxClassesPerWave classes max ($classLimitSkipped skipped)" })"
 if (-not $DisableWaveScaling -and $lockedByScaling.Count -gt 0) {

@@ -16,6 +16,7 @@ $groupsPath = Join-Path $configRoot "Zed probability groups.ini"
 $waveScalingPath = Join-Path $configRoot "Wave scaling.ini"
 $safetyNetPath = Join-Path $configRoot "Safety net.ini"
 $spawnBurstsPath = Join-Path $configRoot "Spawn bursts.ini"
+$spawnPacingPath = Join-Path $configRoot "Spawn pacing.ini"
 $difficultyScalerPath = Join-Path $configRoot "Difficulty scaler.ini"
 $presetPath = Join-Path $configRoot "Tool preset.json"
 
@@ -337,6 +338,7 @@ function Run-Generator {
         "-WaveScalingPath", $waveScalingPath,
         "-SafetyNetPath", $safetyNetPath,
         "-SpawnBurstsPath", $spawnBurstsPath,
+        "-SpawnPacingPath", $spawnPacingPath,
         "-DifficultyScalerPath", $difficultyScalerPath,
         "-IgnoreProbabilityComments"
     )
@@ -357,6 +359,7 @@ function Run-Generator {
     $LogBox.AppendText("Wave scaling: enabled from $waveScalingPath`r`n")
     $LogBox.AppendText("Safety net: enabled from $safetyNetPath`r`n")
     $LogBox.AppendText("Spawn bursts: enabled from $spawnBurstsPath`r`n")
+    $LogBox.AppendText("Spawn pacing: enabled from $spawnPacingPath`r`n")
     $LogBox.AppendText("Difficulty scaler: enabled from $difficultyScalerPath`r`n")
     $modeText = if ($Append) { "Generate .ini" } elseif ($InPlace) { "Overwrite KFZedSpawner.ini with backup" } else { "Rebuild preview file" }
     $LogBox.AppendText("Mode=$modeText`r`n`r`n")
@@ -498,6 +501,13 @@ $openBurstsButton.Height = 30
 $openBurstsButton.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 6)
 $buttonPanel.Controls.Add($openBurstsButton)
 
+$openPacingButton = New-Object System.Windows.Forms.Button
+$openPacingButton.Text = "Open Pacing"
+$openPacingButton.Width = 110
+$openPacingButton.Height = 30
+$openPacingButton.Margin = New-Object System.Windows.Forms.Padding(0, 0, 8, 6)
+$buttonPanel.Controls.Add($openPacingButton)
+
 $openDifficultyButton = New-Object System.Windows.Forms.Button
 $openDifficultyButton.Text = "Open Difficulty"
 $openDifficultyButton.Width = 120
@@ -575,7 +585,7 @@ $logBox.ReadOnly = $true
 $logBox.ScrollBars = "Vertical"
 $logBox.Dock = "Fill"
 $logBox.Font = New-Object System.Drawing.Font("Consolas", 10)
-$logBox.Text = "Generate Preview rebuilds the generated INI. Generate .ini adds the current wave range and parameters as a new block. Wave scaling, safety net, spawn bursts, and difficulty scaler are enabled from Config."
+$logBox.Text = "Generate Preview rebuilds the generated INI. Generate .ini adds the current wave range and parameters as a new block. Wave scaling, safety net, spawn bursts, spawn pacing, and difficulty scaler are enabled from Config."
 $mainPanel.Controls.Add($logBox, 0, 3)
 
 $statusLabel = New-Object System.Windows.Forms.Label
@@ -727,7 +737,7 @@ if (Test-Path -LiteralPath $presetPath) {
     try {
         $savedSettings = Get-Content -LiteralPath $presetPath -Raw | ConvertFrom-Json
         Apply-WindowSettings -Settings $savedSettings
-        $logBox.Text = "Loaded preset from $presetPath. Generate Preview rebuilds the generated INI. Generate .ini adds the current wave range and parameters as a new block. Wave scaling, safety net, spawn bursts, and difficulty scaler are enabled."
+        $logBox.Text = "Loaded preset from $presetPath. Generate Preview rebuilds the generated INI. Generate .ini adds the current wave range and parameters as a new block. Wave scaling, safety net, spawn bursts, spawn pacing, and difficulty scaler are enabled."
     }
     catch {
         $logBox.Text = "Could not load preset: $($_.Exception.Message)"
@@ -788,6 +798,7 @@ $openGroupsButton.Add_Click({ Open-TextFile -Path $groupsPath })
 $openScalingButton.Add_Click({ Open-TextFile -Path $waveScalingPath })
 $openSafetyButton.Add_Click({ Open-TextFile -Path $safetyNetPath })
 $openBurstsButton.Add_Click({ Open-TextFile -Path $spawnBurstsPath })
+$openPacingButton.Add_Click({ Open-TextFile -Path $spawnPacingPath })
 $openDifficultyButton.Add_Click({ Open-TextFile -Path $difficultyScalerPath })
 
 [void]$form.ShowDialog()

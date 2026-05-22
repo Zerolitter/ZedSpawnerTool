@@ -17,6 +17,7 @@ Config/
     Wave scaling.ini
     Safety net.ini
     Spawn bursts.ini
+    Spawn pacing.ini
     Difficulty scaler.ini
     Tool preset.json
 
@@ -155,6 +156,32 @@ Example:
 That means each spawn line in waves 26-29 has a 19 percent chance to become a bigger pack, clamped at SpawnCountBase 2 and SingleSpawnLimit 3.
 
 
+Config\Spawn pacing.ini
+
+Keeps early waves stable even when the window values are set hot.
+This runs after Spawn bursts, so it can clamp unsafe early pack sizes.
+
+Each wave range can use:
+
+    RelativeStart
+    DelayMin
+    DelayMax
+    MaxSpawnCountBase
+    MaxSingleSpawnLimit
+
+Example:
+
+    [Wave1-4]
+    RelativeStart=2
+    DelayMin=3
+    DelayMax=5
+    MaxSpawnCountBase=1
+    MaxSingleSpawnLimit=1
+
+That means wave 1-4 spawns are delayed, staggered, and capped at one zed per spawn line.
+This helps avoid no-free-spawn-volume loops on wave 1.
+
+
 Config\Difficulty scaler.ini
 
 Controls how many zed classes from each bucket can appear per regular wave.
@@ -220,6 +247,10 @@ Open Safety
 Open Bursts
 
     Opens Config\Spawn bursts.ini.
+
+Open Pacing
+
+    Opens Config\Spawn pacing.ini.
 
 Open Difficulty
 

@@ -24,5 +24,8 @@
   "SomewhatinthemiddleProbabilityMax": 38,
   "Delay": 1,
   "SingleSpawnLimit": 1,
-  "SingleSpawnLimitMax": 2
+  "SingleSpawnLimitMax": 2,
+  "MaxClassesPerWave": 0,
+  "RareProbability": 5,
+  "RareProbabilityMax": 5
 }
